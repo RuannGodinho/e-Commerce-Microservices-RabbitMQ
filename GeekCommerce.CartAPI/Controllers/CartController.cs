@@ -13,12 +13,14 @@ namespace GeekCommerce.CartAPI.Controllers
     {
         private ICartRepository _cartRepository;
         private IRabbitMQMessageSender _rabbitMQMessageSender;
+        private ICouponRepository _couponRepository;
 
 
-        public CartController(ICartRepository cartRepository, IRabbitMQMessageSender rabbitMQMessageSender)
+        public CartController(ICartRepository cartRepository, IRabbitMQMessageSender rabbitMQMessageSender, ICouponRepository couponRepository)
         {
             _cartRepository = cartRepository;
             _rabbitMQMessageSender = rabbitMQMessageSender;
+            _couponRepository = couponRepository;
         }
 
         [HttpGet("find-cart/{id}")]
@@ -79,6 +81,7 @@ namespace GeekCommerce.CartAPI.Controllers
         [HttpPost("checkout")]
         public async Task<ActionResult<CheckoutHeaderVO>> Checkout(CheckoutHeaderVO vo)
         {
+            string token = Request.Headers["Authorization"];
             if(vo?.UserId == null)
             { 
                 return BadRequest(); 
@@ -88,6 +91,14 @@ namespace GeekCommerce.CartAPI.Controllers
 
             if (cart == null)
                 return NotFound();
+
+            if (!string.IsNullOrEmpty(vo.CouponCode))
+            {
+                CouponVO coupon = await _couponRepository.GetCouponByCouponCode(vo.CouponCode, token);
+
+                if (vo.DiscountTotal != coupon.DiscountAmount)
+                    return StatusCode(412);
+            }
 
             vo.CartDetails = cart.CartDetails;
             vo.DateTime = DateTime.Now;
