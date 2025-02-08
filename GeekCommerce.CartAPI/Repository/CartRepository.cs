@@ -50,7 +50,7 @@ namespace GeekCommerce.CartAPI.Repository
         {
             Cart cart = new()
             {
-                CartHeader = await _context.CartHeaders.FirstOrDefaultAsync(_ => _.UserId == userId),
+                CartHeader = await _context.CartHeaders.FirstOrDefaultAsync(_ => _.UserId == userId) ?? new CartHeader(),
             };
 
             cart.CartDetails = _context.CartDetails
@@ -118,6 +118,8 @@ namespace GeekCommerce.CartAPI.Repository
 
             if(cartHeader == null)
             {
+                cart.CartHeader.CouponCode = "";
+
                 _context.CartHeaders.Add(cart.CartHeader);
                 await _context.SaveChangesAsync();
 

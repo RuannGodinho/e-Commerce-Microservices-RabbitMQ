@@ -1,30 +1,16 @@
-using GeekCommerce.CartAPI.Repository;
-using GeekCommerce.OrderAPI.MessageConsumer;
-using GeekCommerce.OrderAPI.Model;
-using GeekCommerce.OrderAPI.RabbitMQSender;
-using Microsoft.EntityFrameworkCore;
+using GeekCommerce.PaymentAPI.MessageConsumer;
+using GeekCommerce.PaymentAPI.RabbitMQSender;
+using GeekCommerce.PaymentProcessor;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connection = builder.Configuration["MySqlConnection:MySqlConnectionString"];
+// Add services to the container.
 
-builder.Services.AddDbContext<MySqlContext>(options => options.UseMySql(connection,
-            new MySqlServerVersion(new Version(8, 0, 34))));
-
-var dbBuilder = new DbContextOptionsBuilder<MySqlContext>();
-
-dbBuilder.UseMySql(connection,
-    new MySqlServerVersion(new Version(8, 0, 34)));
-
-builder.Services.AddSingleton(new OrderRepository(dbBuilder.Options));
-
-builder.Services.AddHostedService<RabbitMQMessageConsumer>();
-builder.Services.AddHostedService<RabbitMQPaymentConsumer>();
-
+builder.Services.AddSingleton<IProcessPayment, ProcessPayment>();
 builder.Services.AddSingleton<IRabbitMQMessageSender, RabbitMQMessageSender>();
-
+builder.Services.AddHostedService<RabbitMQPaymentConsumer>();
 builder.Services.AddControllers();
 
 builder.Services.AddAuthentication("Bearer")
@@ -87,7 +73,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
